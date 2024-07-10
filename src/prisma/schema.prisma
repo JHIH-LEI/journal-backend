@@ -1,0 +1,209 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+  output   = "./prisma-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum JournalStatus {
+    PRIVATE
+    GROUP_ONLY
+    // PUBLIC
+}
+
+enum TrackDisplayType {
+    CHECK_BOX
+    VALUE
+}
+
+model User {
+  id    Int     @id @default(autoincrement())
+//   確保資料庫已經安裝uuid extension
+// CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+// 查看:
+// SELECT * FROM pg_available_extensions;
+  uuid String @unique @default(dbgenerated("uuid_generate_v4()"))
+  email String  @unique
+//   userAccount String @unique @map("user_account")
+  userName  String @map("user_name")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  groups UserGroup[]
+  journals Journal[]
+
+  @@map("users")
+}
+
+model Group {
+    id    Int     @id @default(autoincrement())
+    groupName String @map("group_name")
+    createdAt        DateTime           @default(now()) @map("created_at")
+    updatedAt        DateTime           @updatedAt @map("updated_at")
+        
+    events Event[]
+    users UserGroup[]
+    journals Journal[]
+    categories Category[]
+    tracks Track[]
+    activites Activity[]
+
+    @@map("groups")
+}
+
+model UserGroup {
+    id    Int     @id @default(autoincrement())
+    isAdmin Boolean @map("is_admin")
+    groupId Int @map("group_id")
+    userId Int @map("user_id")
+    createdAt        DateTime           @default(now()) @map("created_at")
+    updatedAt        DateTime           @updatedAt @map("updated_at")
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    @@unique([groupId, userId])
+
+    @@map("user_groups")
+}
+
+// 會有分類，像是english conversation group
+// 就可以看所有english conversation group的事件有哪些
+model Event {
+    id    Int     @id @default(autoincrement())
+    eventTitle String @map("event_title")
+    eventBody String @map("event_body")
+    eventIndex Int @map("event_index")
+    createdAt        DateTime           @default(now()) @map("created_at")
+    updatedAt        DateTime           @updatedAt @map("updated_at")
+
+    moodId Int? @map("mood_id")
+    groupId Int @map("group_id")
+    journalId Int @map("journal_id")
+    
+    mood Mood? @relation(fields: [moodId], references: [id], onDelete: SetNull, onUpdate: Restrict)
+    group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    journal Journal @relation(fields: [journalId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+    @@map("events")
+}
+
+// 一個事件是否會需要多個種類？
+// 運動, 社交, 比賽
+
+model Mood {
+    id    Int     @id @default(autoincrement())
+    moodName String @unique @map("mood_name")
+    moodIconURL String @map("mood_icon_url")
+    createdAt        DateTime           @default(now()) @map("created_at")
+    updatedAt        DateTime           @updatedAt @map("updated_at")
+
+    events Event[]
+    journals Journal[]
+
+    @@map("moods")
+}
+
+model Journal {
+    id    Int     @id @default(autoincrement())
+    journalTitle String @map("journal_title")
+    journalBody String @map("journal_body")
+    journalStatus JournalStatus @map("journal_status")
+    journalDate DateTime @map("journal_date")
+    createdAt        DateTime           @default(now()) @map("created_at")
+    updatedAt        DateTime           @updatedAt @map("updated_at")
+
+    userId Int @map("user_id")
+    groupId Int @map("group_id")
+    moodId Int @map("mood_id")
+    categoryId Int? @map("category_id")
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    mood Mood @relation(fields: [moodId], references: [id])
+    category Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    tracks JournalTrack[]
+    events Event[]
+    activities JournalActivity[]
+
+    @@map("journals")
+}
+
+// 活動綁在事件上，但有時候某個活動也不需要寫日記啊，只是紀錄做了什麼
+// 一個日記可以設定說今天有哪些活動，做回顧
+model Activity {
+    id    Int     @id @default(autoincrement())
+    activityName String @map("activity_name")
+    groupId Int @map("group_id")
+    activityIconURL String @map("activity_icon_url")
+    createdAt        DateTime           @default(now()) @map("created_at")
+    updatedAt        DateTime           @updatedAt @map("updated_at")
+
+    journals JournalActivity[]
+    group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+    @@map("activities")
+    @@unique([activityName, groupId])
+}
+
+model JournalActivity {
+    id    Int     @id @default(autoincrement())
+    activityId Int @map("activity_id")
+    journalId Int @map("journal_id")
+    createdAt        DateTime           @default(now()) @map("created_at")
+    updatedAt        DateTime           @updatedAt @map("updated_at")
+
+    journal Journal @relation(fields: [journalId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    activity Activity @relation(fields: [activityId],references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+    @@unique([activityId, journalId])
+}
+
+model Category {
+    id    Int     @id @default(autoincrement())
+    categoryName String @map("category_name")
+    createdAt        DateTime           @default(now()) @map("created_at")
+    updatedAt        DateTime           @updatedAt @map("updated_at")
+
+    groupId Int @map("group_id")
+    group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    journals Journal[]
+
+    @@map("categories")
+}
+
+// track可以設定目標，有可能每個月，每天的同個track目標不同
+
+model Track {
+    id    Int     @id @default(autoincrement())
+    trackName String @map("track_name")
+    trackDisplayType TrackDisplayType @map("track_display_type")
+    createdAt        DateTime           @default(now()) @map("created_at")
+    updatedAt        DateTime           @updatedAt @map("updated_at")
+
+    groupId Int @map("group_id")
+    group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    journals JournalTrack[]
+
+    @@map("tracks")
+}
+
+model JournalTrack {
+    id    Int     @id @default(autoincrement())
+    trackGoal Int? @map("track_goal")
+    trackValue Float @map("track_value")
+    createdAt        DateTime           @default(now()) @map("created_at")
+    updatedAt        DateTime           @updatedAt @map("updated_at")
+
+    journalId Int @map("journal_id")
+    trackId Int @map("track_id")
+    
+    journal Journal @relation(fields: [journalId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    track Track @relation(fields: [trackId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    
+    @@map("journal_tracks")
+    @@unique([journalId, trackId])
+}
