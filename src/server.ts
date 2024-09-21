@@ -2,6 +2,7 @@ import { ApolloServer } from "@apollo/server";
 import { startStandaloneServer } from "@apollo/server/standalone";
 import typeDefs from "./schema";
 import resolvers from "./resolvers";
+import { intIDScalar } from "./scalar";
 
 interface Context {
   user: {
@@ -11,7 +12,11 @@ interface Context {
 }
 
 async function startApolloServer() {
-  const server = new ApolloServer<Context>({ typeDefs, resolvers });
+  const server = new ApolloServer<Context>({
+    typeDefs,
+    // resolvers,
+    resolvers: { ...resolvers, IntID: intIDScalar },
+  });
 
   const { url } = await startStandaloneServer(server, {
     context: async ({ req }) => {
