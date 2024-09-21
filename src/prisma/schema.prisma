@@ -20,6 +20,24 @@ enum TrackDisplayType {
     VALUE
 }
 
+enum IconType {
+    ACTIVITY
+    MOOD
+}
+
+model Icon{
+    id    Int     @id @default(autoincrement())
+    iconName String @map("icon_name")
+    iconURL String @map("icon_url")
+    iconType IconType @map("icon_type") 
+    createdAt        DateTime           @default(now()) @map("created_at")
+    updatedAt        DateTime           @updatedAt @map("updated_at")
+
+    moods Mood[]
+    activities Activity[]
+    @@map("icons")
+}
+
 model User {
   id    Int     @id @default(autoincrement())
 //   確保資料庫已經安裝uuid extension
@@ -82,11 +100,11 @@ model Event {
 
     moodId Int? @map("mood_id")
     groupId Int @map("group_id")
-    journalId Int @map("journal_id")
+    journalId Int? @map("journal_id")
     
     mood Mood? @relation(fields: [moodId], references: [id], onDelete: SetNull, onUpdate: Restrict)
     group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-    journal Journal @relation(fields: [journalId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    journal Journal? @relation(fields: [journalId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
     @@map("events")
 }
@@ -97,12 +115,14 @@ model Event {
 model Mood {
     id    Int     @id @default(autoincrement())
     moodName String @unique @map("mood_name")
-    moodIconURL String @map("mood_icon_url")
+    iconId Int @map("icon_id")
+    // moodIconURL String @map("mood_icon_url")
     createdAt        DateTime           @default(now()) @map("created_at")
     updatedAt        DateTime           @updatedAt @map("updated_at")
 
     events Event[]
     journals Journal[]
+    icon Icon @relation(fields: [iconId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
     @@map("moods")
 }
@@ -118,12 +138,12 @@ model Journal {
 
     userId Int @map("user_id")
     groupId Int @map("group_id")
-    moodId Int @map("mood_id")
+    moodId Int? @map("mood_id")
     categoryId Int? @map("category_id")
 
     user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-    mood Mood @relation(fields: [moodId], references: [id])
+    mood Mood? @relation(fields: [moodId], references: [id])
     category Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     tracks JournalTrack[]
     events Event[]
@@ -138,13 +158,14 @@ model Activity {
     id    Int     @id @default(autoincrement())
     activityName String @map("activity_name")
     groupId Int @map("group_id")
-    activityIconURL String @map("activity_icon_url")
+    iconId Int @map("icon_id")
+    // activityIconURL String @map("activity_icon_url")
     createdAt        DateTime           @default(now()) @map("created_at")
     updatedAt        DateTime           @updatedAt @map("updated_at")
 
     journals JournalActivity[]
     group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
+    icon Icon @relation(fields: [iconId], references: [id], onDelete: Restrict, onUpdate: Cascade)
     @@map("activities")
     @@unique([activityName, groupId])
 }
@@ -160,6 +181,7 @@ model JournalActivity {
     activity Activity @relation(fields: [activityId],references: [id], onDelete: Cascade, onUpdate: Cascade)
 
     @@unique([activityId, journalId])
+    @@map("journal_activities")
 }
 
 model Category {
