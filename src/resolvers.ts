@@ -75,11 +75,13 @@ const resolvers: Resolvers = {
 
   Journal: {
     journalMood: async ({ moodId }) => {
-      return prisma.mood.findUnique({
-        where: {
-          id: moodId,
-        },
-      });
+      return moodId
+        ? prisma.mood.findUnique({
+            where: {
+              id: moodId,
+            },
+          })
+        : null;
     },
     author: async ({ userId }) => {
       return prisma.user.findUnique({
@@ -166,6 +168,42 @@ const resolvers: Resolvers = {
           id: iconId,
         },
       });
+    },
+  },
+
+  Track: {
+    trackDisplayType: async (parent) => {
+      if (!parent.trackId) {
+        throw new Error(
+          `need trackId to find trackDisplayType. parent: ${parent}`
+        );
+      }
+      const track = await prisma.track.findUnique({
+        where: {
+          id: parent.trackId,
+        },
+      });
+
+      if (!track) {
+        throw new Error(`can not find track id: ${parent.trackId}`);
+      }
+
+      return track.trackDisplayType;
+    },
+    trackName: async (parent) => {
+      if (!parent.trackId) {
+        throw new Error(`need trackId to find track name`);
+      }
+      const track = await prisma.track.findUnique({
+        where: {
+          id: parent.trackId,
+        },
+      });
+
+      if (!track) {
+        throw new Error(`can not find track id: ${parent.trackId}`);
+      }
+      return track.trackName;
     },
   },
 
@@ -379,6 +417,43 @@ const resolvers: Resolvers = {
           message: err.message,
           success: false,
           data: null,
+        };
+      }
+    },
+
+    removeJournalTrack: async (_, { id }) => {
+      try {
+        const deleteTrack = await trackController.removeJournalTrack(id);
+        return {
+          data: deleteTrack,
+          code: 200,
+          message: `successfully remove ${deleteTrack.id}`,
+          success: true,
+        };
+      } catch (err: any) {
+        return {
+          code: 500,
+          message: err.message,
+          success: false,
+          data: null,
+        };
+      }
+    },
+
+    addJournalTrack: async (_, { input }) => {
+      try {
+        return {
+          data: await trackController.addJournalTrack(input),
+          code: 201,
+          message: "success",
+          success: true,
+        };
+      } catch (err: any) {
+        return {
+          data: null,
+          code: 500,
+          message: err.message,
+          success: false,
         };
       }
     },

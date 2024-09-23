@@ -1,5 +1,5 @@
 import { prisma } from "../db";
-import { CreateTrackInput } from "../generated/graphql";
+import { AddJournalTrackInput, CreateTrackInput } from "../generated/graphql";
 export const trackController = {
   createTrack: async (input: CreateTrackInput) => {
     const track = await prisma.track.create({
@@ -21,5 +21,31 @@ export const trackController = {
     });
 
     return deleteTrack;
+  },
+
+  removeJournalTrack: async (id: number) => {
+    const deleteTrack = await prisma.journalTrack.delete({
+      where: {
+        id,
+      },
+    });
+    return deleteTrack;
+  },
+
+  addJournalTrack: async (input: AddJournalTrackInput) => {
+    const jorunalTrack = await prisma.journalTrack.create({
+      data: {
+        journal: {
+          connect: { id: input.journalId },
+        },
+        track: {
+          connect: { id: input.trackId },
+        },
+        trackValue: input.trackValue,
+        trackGoal: input.trackGoal,
+      },
+    });
+
+    return jorunalTrack;
   },
 };

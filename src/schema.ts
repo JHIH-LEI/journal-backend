@@ -67,6 +67,10 @@ const typeDefs = gql`
     updateActivity(input: UpdateActivityInput!): UpdateActivityResponse
     "刪除活動"
     removeActivity(id: IntID!): RemoveActivityResponse
+    "add track to journal"
+    addJournalTrack(input: AddJournalTrackInput!): AddJournalTrackResponse
+    "remove track from journal"
+    removeJournalTrack(id: IntID!): RemoveJournalTrackResponse
   }
 
   interface Response {
@@ -139,10 +143,11 @@ const typeDefs = gql`
     message: String!
   }
 
-  input CreateTrackInput {
-    trackName: String!
-    trackDisplayType: TrackDisplayType!
-    groupId: IntID!
+  type AddJournalTrackResponse implements Response {
+    code: Int!
+    success: Boolean!
+    message: String!
+    data: Track
   }
 
   type RemoveCategoryResponse implements Response {
@@ -166,6 +171,13 @@ const typeDefs = gql`
     message: String!
   }
 
+  type RemoveJournalTrackResponse implements Response {
+    code: Int!
+    success: Boolean!
+    message: String!
+    data: Track
+  }
+
   type PieChart {
     value: Int!
     name: String!
@@ -182,6 +194,12 @@ const typeDefs = gql`
     trackPieChart: PieChart
     journalMoodBarChart: [BarChart!]
     eventMoodBarChart: [BarChart!]
+  }
+
+  input CreateTrackInput {
+    trackName: String!
+    trackDisplayType: TrackDisplayType!
+    groupId: IntID!
   }
 
   input UpdateJournalInput {
@@ -251,6 +269,13 @@ const typeDefs = gql`
     id: IntID!
     activityName: String!
     iconId: IntID!
+  }
+
+  input AddJournalTrackInput {
+    journalId: IntID!
+    trackId: IntID!
+    trackGoal: Int!
+    trackValue: Int!
   }
 
   type Icon {
