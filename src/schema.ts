@@ -228,7 +228,7 @@ const typeDefs = gql`
   }
 
   input JournalTrackInput {
-    id: IntID!
+    trackId: IntID!
     trackGoal: Int
     trackValue: Int!
   }
@@ -293,6 +293,7 @@ const typeDefs = gql`
 
   type Track {
     id: IntID!
+    trackId: IntID!
     trackName: String!
     trackDisplayType: TrackDisplayType!
     trackGoal: Int

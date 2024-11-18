@@ -101,7 +101,8 @@ const resolvers: Resolvers = {
       });
 
       return rawData.map((data) => ({
-        id: data.track.id,
+        id: data.id,
+        trackId: data.track.id,
         trackName: data.track.trackName,
         trackDisplayType: data.track.trackDisplayType,
         trackValue: data.trackValue,
@@ -173,6 +174,10 @@ const resolvers: Resolvers = {
 
   Track: {
     trackDisplayType: async (parent) => {
+      if (parent.trackDisplayType) {
+        return parent.trackDisplayType;
+      }
+
       if (!parent.trackId) {
         throw new Error(
           `need trackId to find trackDisplayType. parent: ${parent}`
@@ -191,8 +196,14 @@ const resolvers: Resolvers = {
       return track.trackDisplayType;
     },
     trackName: async (parent) => {
+      if (parent.trackName) {
+        return parent.trackName;
+      }
+
       if (!parent.trackId) {
-        throw new Error(`need trackId to find track name`);
+        throw new Error(
+          `need trackId to find track name, parent: ${JSON.stringify(parent)}`
+        );
       }
       const track = await prisma.track.findUnique({
         where: {
@@ -209,9 +220,11 @@ const resolvers: Resolvers = {
 
   JournalEvent: {
     mood: ({ moodId }) => {
-      return prisma.mood.findUnique({
-        where: { id: moodId },
-      });
+      return moodId
+        ? prisma.mood.findUnique({
+            where: { id: moodId },
+          })
+        : null;
     },
     group: ({ groupId }) => {
       return prisma.group.findUnique({

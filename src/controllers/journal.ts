@@ -45,7 +45,7 @@ export const journalController = {
               return {
                 trackValue: track.trackValue,
                 trackGoal: track.trackGoal || null,
-                trackId: track.id,
+                trackId: track.trackId,
                 journalId: journal.id,
               };
             }),
