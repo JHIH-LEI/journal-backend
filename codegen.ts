@@ -17,6 +17,7 @@ const config: CodegenConfig = {
           JournalCategory: "./src/prisma/prisma-client#Category",
           Track: "./src/prisma/prisma-client#Track",
           TrackDisplayType: "./src/prisma/prisma-client#TrackDisplayType",
+          MoodName: "./src/prisma/prisma-client#MoodName",
         },
       },
       plugins: ["typescript", "typescript-resolvers"],

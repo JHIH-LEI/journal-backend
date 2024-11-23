@@ -1,6 +1,8 @@
 import { prisma } from "../db";
 import {
   CreateJournalInput,
+  GetJournalsInput,
+  InputMaybe,
   UpdateJournalEventInput,
   UpdateJournalInput,
 } from "../generated/graphql";
@@ -98,6 +100,60 @@ export const journalController = {
       },
     });
     return journal;
+  },
+  getJournals: async (
+    input: InputMaybe<GetJournalsInput> | undefined,
+    userId: number
+  ) => {
+    const filter: {
+      userId: number;
+      date?: { gte: Date; lte: Date };
+      categoryId?: GetJournalsInput["categoryId"];
+      moodId?: GetJournalsInput["moodId"];
+    } = {
+      userId,
+    };
+
+    if (input) {
+      if (input.startDate && input.endDate) {
+        filter.date = {
+          gte: new Date(input.startDate),
+          lte: new Date(input.endDate),
+        };
+      }
+
+      if (input.categoryId) {
+        filter.categoryId = input.categoryId;
+      }
+
+      if (input.moodId) {
+        filter.moodId = input.moodId;
+      }
+
+      if (input.activityIds && input.activityIds.length > 0) {
+      }
+    }
+
+    const journals = await prisma.journal.findMany({
+      where: {
+        ...filter,
+        ...(input?.activityIds && {
+          activities: {
+            some: {
+              id: { in: input.activityIds },
+            },
+          },
+        }),
+      },
+      orderBy: {
+        journalDate: "desc",
+      },
+      include: {
+        activities: true,
+      },
+    });
+
+    return journals || [];
   },
 };
 

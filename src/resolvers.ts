@@ -3,7 +3,13 @@ import { journalController } from "./controllers/journal";
 import { trackController } from "./controllers/track";
 import { categoryController } from "./controllers/category";
 import { activityController } from "./controllers/activity";
-import { Resolvers } from "./generated/graphql";
+import {
+  GetJournalsInput,
+  MonthlyMoodData,
+  MoodName,
+  Resolvers,
+  YearlyDashBoard,
+} from "./generated/graphql";
 
 const resolvers: Resolvers = {
   Query: {
@@ -71,6 +77,103 @@ const resolvers: Resolvers = {
         message: activities ? "success" : "err",
       };
     },
+    getJournals: async (_, { input }, { user }) => {
+      try {
+        const journals = await journalController.getJournals(input, user.id);
+        return {
+          data: journals,
+          code: 200,
+          success: journals ? true : false,
+          message: journals ? "success" : "err",
+        };
+      } catch (err: any) {
+        return {
+          data: null,
+          code: 500,
+          success: false,
+          message: err.message,
+        };
+      }
+    },
+    getYearlySummaryData: async (_, { year }: { year: string }, { user }) => {
+      const moodRawData = await prisma.$queryRaw<
+        {
+          month: number;
+          moodId: number;
+          moodName: MoodName;
+          eventsCount: number;
+          journalCount: number;
+        }[]
+      >`
+        WITH RECURSIVE months AS (
+          SELECT 1 as month
+          UNION ALL
+          SELECT month + 1 FROM months WHERE month < 12
+        )
+        SELECT
+          m.month,
+      	moods.id as "moodId",
+          moods.mood_name as "moodName",
+      	COUNT(events.id)::INTEGER as "eventsCount",
+          COUNT(j.id)::INTEGER as "journalCount"
+        FROM months m
+        CROSS JOIN moods
+        LEFT JOIN "journals" j ON
+          EXTRACT(MONTH FROM j."journal_date") = m.month
+          AND EXTRACT(YEAR FROM j."journal_date") = ${year}
+          AND j."user_id" = ${user.id}
+          AND j.mood_id = moods.id
+        LEFT JOIN "events" ON
+      	j.id = events.journal_id
+        GROUP BY m.month, moods.mood_name, moods.id
+        ORDER BY m.month, moods.mood_name;
+            `;
+      const queryCounterRes = await prisma.$queryRaw<
+        {
+          journalCount: number;
+          eventCount: number;
+        }[]
+      >`
+      SELECT
+        COUNT(DISTINCT j.id)::INTEGER AS "journalCount",
+        COUNT(e.id)::INTEGER AS "eventCount"
+      FROM journals j
+      LEFT JOIN events e ON j.id = e.journal_id
+      WHERE j.user_id = ${user.id}
+        AND j.journal_date >= ${new Date(`${year}-01-01`)}
+        AND j.journal_date <= ${new Date(`${year}-12-31T23:59:59`)};
+    `;
+      const monthlyMoodData: MonthlyMoodData[] = Array.from(
+        { length: 12 },
+        (_, i) => ({
+          month: i + 1,
+          moods: [],
+        })
+      );
+      moodRawData.forEach((data) => {
+        monthlyMoodData[data.month - 1].moods.push({
+          moodId: data.moodId,
+          moodName: data.moodName,
+          journalCount: data.journalCount,
+          eventCount: data.eventsCount,
+        });
+      });
+
+      const counter = {
+        totalEventCount: queryCounterRes[0].journalCount,
+        totalJournalCount: queryCounterRes[0].eventCount,
+      };
+
+      return {
+        data: {
+          monthlyMoodData,
+          counter,
+        },
+        message: "ok",
+        code: 200,
+        success: true,
+      };
+    },
   },
 
   Journal: {
@@ -130,7 +233,6 @@ const resolvers: Resolvers = {
         id: data.activity.id,
         activityName: data.activity.activityName,
         groupId: data.activity.groupId,
-        iconId: data.activity.iconId,
       }));
     },
     events: async ({ id: journalId }) => {
@@ -146,13 +248,6 @@ const resolvers: Resolvers = {
   },
 
   Activity: {
-    icon: ({ iconId }) => {
-      return prisma.icon.findUnique({
-        where: {
-          id: iconId,
-        },
-      });
-    },
     group: ({ groupId }) => {
       return prisma.group.findUnique({
         where: {

@@ -5,11 +5,6 @@ export const activityController = {
   createActivity: async (input: CreateActivityInput) => {
     const activity = await prisma.activity.create({
       data: {
-        icon: {
-          connect: {
-            id: input.iconId,
-          },
-        },
         activityName: input.activityName,
         group: {
           connect: {
@@ -26,7 +21,6 @@ export const activityController = {
         id: input.id,
       },
       data: {
-        iconId: input.iconId,
         activityName: input.activityName,
       },
     });

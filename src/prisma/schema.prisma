@@ -21,8 +21,30 @@ enum TrackDisplayType {
 }
 
 enum IconType {
-    ACTIVITY
     MOOD
+}
+
+enum MoodName {
+  HAPPY       // 快樂
+  SADNESS   // 悲傷
+  ANGER     // 憤怒
+//   FEAR      // 恐懼
+//   SURPRISE  // 驚訝
+//   DISGUST   // 厭惡
+  LOVE      // 愛
+//   HOPE      // 希望
+//   PRIDE     // 驕傲
+//   GRATITUDE // 感恩
+//   CALM      // 平靜
+  ANXIETY   // 焦慮
+//   GUILT     // 內疚
+//   SHAME     // 羞恥
+//   RELIEF    // 放鬆
+//   ENVY      // 嫉妒
+//   BOREDOM   // 無聊
+//   CONFUSION // 困惑
+//   LONELINESS // 寂寞
+  NEUTRAL // 平平
 }
 
 model Icon{
@@ -34,7 +56,6 @@ model Icon{
     updatedAt        DateTime           @updatedAt @map("updated_at")
 
     moods Mood[]
-    activities Activity[]
     @@map("icons")
 }
 
@@ -114,7 +135,7 @@ model Event {
 
 model Mood {
     id    Int     @id @default(autoincrement())
-    moodName String @unique @map("mood_name")
+    moodName MoodName @unique @map("mood_name")
     iconId Int @map("icon_id")
     // moodIconURL String @map("mood_icon_url")
     createdAt        DateTime           @default(now()) @map("created_at")
@@ -158,14 +179,11 @@ model Activity {
     id    Int     @id @default(autoincrement())
     activityName String @map("activity_name")
     groupId Int @map("group_id")
-    iconId Int @map("icon_id")
-    // activityIconURL String @map("activity_icon_url")
     createdAt        DateTime           @default(now()) @map("created_at")
     updatedAt        DateTime           @updatedAt @map("updated_at")
 
     journals JournalActivity[]
     group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-    icon Icon @relation(fields: [iconId], references: [id], onDelete: Restrict, onUpdate: Cascade)
     @@map("activities")
     @@unique([activityName, groupId])
 }

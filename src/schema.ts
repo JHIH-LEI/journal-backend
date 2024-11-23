@@ -11,6 +11,29 @@ const typeDefs = gql`
     CHECK_BOX
   }
 
+  enum MoodName {
+    HAPPY
+    SADNESS
+    ANGER
+    # FEAR
+    # SURPRISE
+    # DISGUST
+    LOVE
+    # HOPE
+    # PRIDE
+    # GRATITUDE
+    # CALM
+    ANXIETY
+    # GUILT
+    # SHAME
+    # RELIEF
+    # ENVY
+    # BOREDOM
+    # CONFUSION
+    # LONELINESS
+    NEUTRAL
+  }
+
   # enum IconType {
   #   MOOD
   #   ACTIVITY
@@ -23,6 +46,38 @@ const typeDefs = gql`
     getMoods: GetMoodsResponse
     getTracks(groupId: IntID!): GetTracksResponse
     getActivities(groupId: IntID!): GetActivitiesResponse
+    getJournals(input: GetJournalsInput): GetJournalsResponse
+    "user's yearly dashboard"
+    getYearlySummaryData(year: String!): GetYearlySummaryDataResponse!
+  }
+
+  type GetYearlySummaryDataResponse implements Response {
+    data: YearlyDashBoard!
+    code: Int!
+    success: Boolean!
+    message: String!
+  }
+
+  type YearlyDashBoard {
+    monthlyMoodData: [MonthlyMoodData!]
+    counter: YearlyDashBoardCounter
+  }
+
+  type YearlyDashBoardCounter {
+    totalEventCount: Int!
+    totalJournalCount: Int!
+  }
+
+  type MonthlyMoodData {
+    month: Int!
+    moods: [MoodCountData!]!
+  }
+
+  type MoodCountData {
+    moodId: Int!
+    moodName: MoodName!
+    eventCount: Int!
+    journalCount: Int!
   }
 
   type GetMoodsResponse implements Response {
@@ -178,6 +233,13 @@ const typeDefs = gql`
     data: Track
   }
 
+  type GetJournalsResponse implements Response {
+    code: Int!
+    success: Boolean!
+    message: String!
+    data: [Journal!]
+  }
+
   type PieChart {
     value: Int!
     name: String!
@@ -262,13 +324,11 @@ const typeDefs = gql`
   input CreateActivityInput {
     activityName: String!
     groupId: IntID!
-    iconId: IntID!
   }
 
   input UpdateActivityInput {
     id: IntID!
     activityName: String!
-    iconId: IntID!
   }
 
   input AddJournalTrackInput {
@@ -276,6 +336,14 @@ const typeDefs = gql`
     trackId: IntID!
     trackGoal: Int!
     trackValue: Int!
+  }
+
+  input GetJournalsInput {
+    startDate: Date
+    endDate: Date
+    categoryId: IntID
+    moodId: Int
+    activityIds: [IntID!]
   }
 
   type Icon {
@@ -288,7 +356,7 @@ const typeDefs = gql`
   type Mood {
     id: IntID!
     icon: Icon!
-    moodName: String!
+    moodName: MoodName!
   }
 
   type Track {
@@ -335,7 +403,6 @@ const typeDefs = gql`
   type Activity {
     id: IntID!
     activityName: String!
-    icon: Icon
     group: Group!
   }
 
